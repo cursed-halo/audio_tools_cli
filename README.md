@@ -53,6 +53,8 @@ Open a terminal. Navigate to wherever you put `audiotool.py`. All commands follo
 python3 audiotool.py COMMAND [arguments]
 ```
 
+> **Windows note:** Use `python` instead of `python3` in all the commands below. If neither works, make sure Python is added to your PATH during installation (there's a checkbox in the Python installer for this).
+
 That's it. Every command below is a copy-paste example — just swap the filenames with yours.
 
 ---
@@ -124,6 +126,8 @@ python3 audiotool.py convert song.mp3 song.wav --bit-depth 16
 ```
 
 Bit depth options: `16`, `24` (default), or `32`.
+
+> **Compatibility tip:** Some older or basic audio players can't handle 24-bit WAV files (they may show as empty or refuse to play). If you run into this, use `--bit-depth 16` — it's CD quality and works everywhere.
 
 #### Controlling quality for lossy formats
 

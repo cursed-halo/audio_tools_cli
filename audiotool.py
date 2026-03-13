@@ -9,6 +9,8 @@ import argparse
 import json
 import os
 import pathlib
+import platform
+import shlex
 import shutil
 import subprocess
 import sys
@@ -69,13 +71,27 @@ def run_ffprobe(input_path):
         if result.stderr:
             print(result.stderr.strip(), file=sys.stderr)
         sys.exit(1)
-    return json.loads(result.stdout)
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError:
+        print(f"[ERROR] ffprobe returned invalid data for '{input_path}'", file=sys.stderr)
+        sys.exit(1)
+
+
+def format_cmd(cmd):
+    """Format a command list for display, quoting args with spaces."""
+    if platform.system() == "Windows":
+        return subprocess.list2cmdline(cmd)
+    return shlex.join(cmd)
 
 
 def run_ffmpeg(cmd, verbose=False):
     """Run an ffmpeg command, handling errors."""
+    # Prevent ffmpeg from reading stdin (avoids hangs in scripts/pipelines)
+    if "-nostdin" not in cmd:
+        cmd = [cmd[0], "-nostdin"] + cmd[1:]
     if verbose:
-        print(f"[CMD] {' '.join(cmd)}")
+        print(f"[CMD] {format_cmd(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         stderr_lines = [l for l in result.stderr.strip().split("\n") if l.strip()]
@@ -438,7 +454,9 @@ def cmd_loop(args):
                         "-map", "[out]"]
         else:
             # For high counts, use concat demuxer via pipe
-            concat_list = "\n".join(f"file '{input_path.resolve()}'" for _ in range(count))
+            # Use forward slashes for ffmpeg compatibility on all platforms
+            resolved = str(input_path.resolve()).replace("\\", "/")
+            concat_list = "\n".join(f"file '{resolved}'" for _ in range(count))
             cmd = [
                 "ffmpeg", "-f", "concat", "-safe", "0",
                 "-protocol_whitelist", "file,pipe",
